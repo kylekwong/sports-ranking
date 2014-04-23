@@ -1,0 +1,58 @@
+open Core.Std
+open Array
+
+module type MATRIX =
+sig 
+  
+  type m
+
+  (* takes the transpose of the matrix but effectively swapping the "i" and 
+   * and "j" coordinates of all elements in our matrix, given by 
+   * array.(i).(j). used primarily in Massey's ranking algorithm. *)
+  val transpose: m -> m
+
+  (* multiplies two matrices for use in each of our ranking algorithms. 
+   * most of our ranking algorithms will only require a matrix times a vector,
+   * which is a matrix with 1-column. Massey's algorithm, though, will require 
+   * us to multiply two nxn matrices *)
+  val multiply: m -> m
+
+  (* takes the inverse of an arbitrarily large n x n matrix. 
+   * this is an alternative to row reducing an augmented matrix, which, 
+   * though equivalent, is not as fluid a solution *)
+  val invert: m -> m
+
+  (* as an alternative to invert, we'll implement the functionality for
+   * row_reduce if we find some meta problems in inverting a matrix. we might
+   * run into problems with trying to invert non-invertible matrices, but we're 
+   * not yet sure if we'll ever be passing in matrices for which the determinant
+   * is equal to 0. we'll meet with faculty in the math department to discuss 
+   * this week *)
+  val row_reduce: m -> m
+
+end
+
+module Matrix : MATRIX =
+struct
+  
+  type m = float array array 
+  
+  let transpose (mat : m) : m =  
+    let nheight = Array.length mat.(0) in
+    let nwidth = Array.length mat in
+    let nmat = (make_matrix ~dimx:nheight ~dimy:nwidth 1.) in
+    let rec ihelper (c : int) : m =
+      let rec jhelper (c2 : int) : m =
+	Array.set nmat.(c) c2 mat.(c2).(c);
+	if c2 < nwidth-1 then jhelper (c2 + 1)
+	else ihelper (c + 1) in
+      if c < nheight then jhelper (0)
+      else nmat in
+    ihelper (0)
+
+  (* dummy functions *)
+  let multiply m = m
+  let invert m = m
+  let row_reduce m = m
+
+end
