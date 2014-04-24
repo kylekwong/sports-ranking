@@ -1,0 +1,9 @@
+open Core.Std
+open Array
+
+let sample_data = [[("Brown", 7); ("Harvard", 24)]; [("Cornell", 17); ("Yale", 37)]; [("Penn", 22); ("Dartmouth", 20)]; 
+		  [("Columbia", 21); ("Princeton", 24)]; [("Dartmouth", 0); ("Yale", 30)]; [("Harvard", 41); ("Cornell", 31)];
+		  [("Princeton", 0); ("Brown", 34)]; [("Penn", 27); ("Columbia", 20)]]
+
+
+let rec populate_colley (stats: (string * int) list list) : float array array =

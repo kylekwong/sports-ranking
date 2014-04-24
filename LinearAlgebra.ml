@@ -4,7 +4,7 @@ open Array
 module type MATRIX =
 sig 
   
-  (*type m*)
+  type m
 
   (* takes the transpose of the matrix but effectively swapping the "i" and 
    * and "j" coordinates of all elements in our matrix, given by 
@@ -18,11 +18,6 @@ sig
    * us to multiply two nxn matrices *)
   val multiply: m -> m
 
-  (* takes the inverse of an arbitrarily large n x n matrix. 
-   * this is an alternative to row reducing an augmented matrix, which, 
-   * though equivalent, is not as fluid a solution *)
-  val invert: m -> m
-
   (* as an alternative to invert, we'll implement the functionality for
    * row_reduce if we find some meta problems in inverting a matrix. we might
    * run into problems with trying to invert non-invertible matrices, but we're 
@@ -33,9 +28,11 @@ sig
 
 end
 
+(*
 module Matrix : MATRIX =
 struct
-  
+ *)
+
   (*type m = float array array*)
   
   let transpose (matrix : float array array(*m*)) : float array array(*m*) =  
@@ -61,15 +58,18 @@ struct
 
   let row_reduce (matrix : float array array(*m*)) : float array array (*m*) = 
     [|[|9.; 3.|]; [|4.; 6.|]|];;
-    
+
+(*    
 end
+ *)
 
 let swap_rows m i j =
   let tmp = m.(i) in
   m.(i) <- m.(j);
   m.(j) <- tmp;
 ;;
- 
+
+(* augments a matrix for rrefing *)
 let augment (matrix : float array array(*m*)) (vector : float array array(*m*)) 
   : float array array (*m*) =
   let len = Array.length matrix.(0) in 
@@ -81,15 +81,16 @@ let augment (matrix : float array array(*m*)) (vector : float array array(*m*))
 
 ;;
 
+(* rref *)
 let rref m =
-  try
-    let lead = ref 0
-    and rows = Array.length m
-    and cols = Array.length m.(0) in
-    for r = 0 to pred rows do
+    let lead = ref 0 in
+    let rows = Array.length m in 
+    let cols = Array.length m.(0) in
+    for r = 0 to rows - 1 do
       if cols <= !lead then
         raise Exit;
       let i = ref r in
+      (* if our diagonal is 0 *)
       while m.(!i).(!lead) = 0. do
         incr i;
         if rows = !i then begin
@@ -102,31 +103,40 @@ let rref m =
       swap_rows m !i r;
       let lv = m.(r).(!lead) in
       m.(r) <- Array.map (fun v -> v /. lv) m.(r);
-      for i = 0 to pred rows do
+      for i = 0 to rows - 1 do
         if i <> r then
           let lv = m.(i).(!lead) in
           m.(i) <- Array.mapi (fun i iv -> iv -. lv *. m.(r).(i)) m.(i);
       done;
       incr lead;
     done
-  with Exit -> ()
 ;;
- 
-let () =
-  let m =
-    [| [|  1; 2; -1;  -4 |];
-       [|  2; 3; -1; -11 |];
-       [| -2; 0; -3;  22 |]; |]
-  in
-  rref m;
- 
-  iter (fun row ->
-    iter (fun v ->
-      printf " %d" v
-    ) row;
-    print_newline()
-  ) m
 
+let ericmap f xs ys =
+  let n = length xs in
+  if length ys <> n then raise (Invalid_argument "Array.map2");
+  Array.init n (fun i -> f xs.(i) ys.(i))
+
+let rec row_reduce m index =
+  (* calculate the number of rows *)
+  let rows = Array.length m in 
+  (* calculate the number of columns *)
+  let cols = Array.length m.(0) in 
+  if m.(index).(index) <> 0. && m.(index).(index) <> 1. then 
+    let new_row = Array.map (/.) m.(index) m.(index).(index) in
+    ericmap (-) m.(index + 1) (ericmap ( * ) new_row m.(index + 1).(index))
+  (*  row_reduce m (index + 1) *)
+  (* we are at 0 *)
+  else if m.(index).(index) = 0. then row_reduce m (index + 1)
+  (* we are at 1 *)
+  else ericmap (-) m.(index + 1) (ericmap ( * ) m.(index) m.(index + 1).(index));
+  row_reduce m (index + 1)
+
+
+;;
+
+
+(* multiply *)
 let ericmap f xs ys =
   let n = length xs in
   if length ys <> n then raise (Invalid_argument "Array.map2");
@@ -152,3 +162,15 @@ let multiply (mat1 : float array array) (mat2 : float array array) : float array
   column mat1.(0) tmat2.(0) (0)
     
 let mc = multiply ma ma
+
+let make_rows (teams: (string * string) list) (scores: (int * int) list) : int =
+  let (t1, t2) = teams in
+  let (s1, s2) = scores in
+  let counter_t1 = 0 in 
+  let counter_t2 = 0 in 
+  if s1 > s2 
+  then counter_t1 + 1
+  else counter_t2 + 1
+    
+let x = format_data [("Harvard", "Brown");("Brown, Yale");("Yale","Harvard")] 
+		    [(100,0);(100,0);(100,0)];;
