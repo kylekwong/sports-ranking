@@ -53,8 +53,6 @@ struct
   let m_t = transpose [|[|9.; 3.|]; [|4.; 6.|]|];;
 
   (* dummy functions *)
-  let multiply m = m
-  let invert m = m    
 
   let row_reduce (matrix : float array array(*m*)) : float array array (*m*) = 
     [|[|9.; 3.|]; [|4.; 6.|]|];;
@@ -163,14 +161,6 @@ let multiply (mat1 : float array array) (mat2 : float array array) : float array
     
 let mc = multiply ma ma
 
-let make_rows (teams: (string * string) list) (scores: (int * int) list) : int =
-  let (t1, t2) = teams in
-  let (s1, s2) = scores in
-  let counter_t1 = 0 in 
-  let counter_t2 = 0 in 
-  if s1 > s2 
-  then counter_t1 + 1
-  else counter_t2 + 1
     
 let x = format_data [("Harvard", "Brown");("Brown, Yale");("Yale","Harvard")] 
 		    [(100,0);(100,0);(100,0)];;
