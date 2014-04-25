@@ -115,20 +115,6 @@ let ericmap f xs ys =
   if length ys <> n then raise (Invalid_argument "Array.map2");
   Array.init n (fun i -> f xs.(i) ys.(i))
 
-let rec row_reduce m index =
-  (* calculate the number of rows *)
-  let rows = Array.length m in 
-  (* calculate the number of columns *)
-  let cols = Array.length m.(0) in 
-  if m.(index).(index) <> 0. && m.(index).(index) <> 1. then 
-    let new_row = Array.map (/.) m.(index) m.(index).(index) in
-    ericmap (-) m.(index + 1) (ericmap ( * ) new_row m.(index + 1).(index))
-  (*  row_reduce m (index + 1) *)
-  (* we are at 0 *)
-  else if m.(index).(index) = 0. then row_reduce m (index + 1)
-  (* we are at 1 *)
-  else ericmap (-) m.(index + 1) (ericmap ( * ) m.(index) m.(index + 1).(index));
-  row_reduce m (index + 1)
 
 
 ;;
@@ -146,16 +132,17 @@ let b = ericmap (-) [|2;4;6|] [|1;2;3|] = [|1;2;3|]
 let ma = [|[|1.; 2.; 3.|]; [|4.; 5.; 6.|]; [|7.; 8.; 9.|]|];;
 let mb = [|[|1.;2.|]; [|3.;4.|]|]
 
-let multiply (mat1 : float array array) (mat2 : float array array) : float array array = 
+let multiply (mat1 : float array array) (mat2 : float array array) : float array array =
   let tmat2 = transpose mat2 in
-  let length = Array.length mat1 in
-  let nmat = (make_matrix ~dimx:(Array.length mat1) ~dimy:(Array.length tmat2) 1.) in
+  let height = Array.length mat1 in
+  let width = Array.length tmat2 in 
+  let nmat = (make_matrix ~dimx:(height) ~dimy:(width) 1.) in
   let rec column (c1 : float array) (c2 : float array) (cc : int) : float array array =
     let rec row (r1 : float array) (r2 : float array) (rc : int) : float array array = 
       Array.set nmat.(cc) rc (Array.fold_right ~f:(+.) (ericmap ( *. ) r1 r2) ~init:(0.));
-      if rc < length-1 then row mat1.(cc) tmat2.(rc + 1) (rc+1)
+      if rc < width-1 then row mat1.(cc) tmat2.(rc + 1) (rc+1)
       else column mat1.(cc) tmat2.(0) (cc+1) in
-    if cc < length then row mat1.(cc) c2 0
+    if cc < height then row mat1.(cc) c2 0
     else nmat in
   column mat1.(0) tmat2.(0) (0)
     
