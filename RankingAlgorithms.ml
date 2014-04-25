@@ -49,7 +49,7 @@ let rec assignment (teams: string list) (index: int)
   | [] -> []
   | team :: league -> (team, index) :: assignment league (index + 1)
   
-let index_list = assignment unique_team_list 0
+let index_list = assignment teams_list 0
 ;;
 
 (* pulls a (team * index) tuple from a list given a search string *)
@@ -83,7 +83,7 @@ let updated_data = update_index sample_data index_list 0;;
 
 (* now that we have our updated index list, we can create
  * a float array array that reflects each game played! *)
-let games = List.length updated_data
+(*let games = List.length updated_data
 let matrix_x = Array.make_matrix ~dimx:(games) ~dimy:(games) 0.
 let rec populate_massey (index_stats: (string * int) list list)
 			(game_number: int)
@@ -94,23 +94,23 @@ let rec populate_massey (index_stats: (string * int) list list)
      let [(t1, id_1); (t2, id_2)] = game in 
       matrix_x.(game_number).(id_1) <- 1.;
       matrix_x.(game_number).(id_2) <- -1.;
-      populate_massey season (game_number + 1)
+      populate_massey season (game_number + 1)*)
 
-(*let populate_massey (index_stats: (string * int) list list)
+let populate_massey (index_stats: (string * int) list list)
 	: float array array =
   let games = List.length index_stats in
   let matrix_x = Array.make_matrix ~dimx:(games) ~dimy:(games) 0. in
-    let rec help_populate_massey (index_stats: (string * int) list list)
+  let rec help_populate_massey (index_stats: (string * int) list list)
 				 (game_number: int)
-	: float array array =
-  match index_stats with
-  | [] -> matrix_x
-  | game :: season ->
-     let [(t1, id_1); (t2, id_2)] = game in 
-      matrix_x.(game_number).(id_1) <- 1.;
-      matrix_x.(game_number).(id_2) <- -1.;
-      populate_massey season (game_number + 1) in
-  help_populate_massey index_stats 0*)
+	  : float array array =
+    match index_stats with
+    | [] -> matrix_x
+    | game :: season ->
+       let [(t1, id_1); (t2, id_2)] = game in 
+       matrix_x.(game_number).(id_1) <- 1.;
+       matrix_x.(game_number).(id_2) <- -1.;
+       help_populate_massey season (game_number + 1) in
+  help_populate_massey index_stats 0
 ;;
 
 let v = [|[|3.|];[|5.|];[|1.|];[|2.|];[|7.|];[|8.|];[|9.|];[|11.|]|];;
