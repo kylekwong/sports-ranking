@@ -147,7 +147,3 @@ let multiply (mat1 : float array array) (mat2 : float array array) : float array
   column mat1.(0) tmat2.(0) (0)
     
 let mc = multiply ma ma
-
-    
-let x = format_data [("Harvard", "Brown");("Brown, Yale");("Yale","Harvard")] 
-		    [(100,0);(100,0);(100,0)];;

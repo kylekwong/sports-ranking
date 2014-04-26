@@ -128,7 +128,8 @@ let rec pull_team (index_list: (string * int) list) (index : int)
 ;;
 
 (* associates a team with the number of ranking "points" it has,
- * which is equal to Transpose(matrix) * point_spread vector *)
+ * which is found by solving the linear system of 
+ * (A^T)(t)(x) = (A^T)(b) *)
 let rec associate_value (index_list: (string * int) list) 
 			(point_spread: float array array) 
 	: (string * float) list = 
@@ -142,11 +143,7 @@ let rec associate_value (index_list: (string * int) list)
 (* sort our (string * float) list in ascending order by floats *)
 let rec sort_teams (list: (string * float) list) 
 	: (string * float) list =
-  match list with
-  | [] -> []
-  | first :: rest -> insert first (sort_teams rest)
-  and 
-  insert elt list = 
+  let rec insert elt list = 
     match list with
     | [] -> [elt]
     | first :: rest -> let (_, float) = first in
@@ -154,6 +151,18 @@ let rec sort_teams (list: (string * float) list)
 		       if float2 <= float
 		       then elt :: list
 		       else first :: (insert elt rest)
+  in 
+  match list with
+  | [] -> []
+  | first :: rest -> insert first (sort_teams rest)
+;;
+
+(* strips the ranking vector from a simplified, augmented matrix *)
+(* HOW THE FUCK DO YOU WRITE THIS FUCKING FUNCTION ? *)
+(* *******************BROKEN************************************)
+let rec strip_results (matrix : float array array) 
+		      (start: int) : float array array =
+  [|[||]|]
 ;;
 
 (* prints the results in a semi-pretty format *)
@@ -162,3 +171,26 @@ let print_results (hierarchy: (string * float) list) =
   List.iter rankings 
     (fun x -> let (string, _) = x in print_string string; 
 				     print_newline ())
+
+(* all of massey's functionality, compressed to 1 function *)
+let calculate_massey () =
+  (* first entry point for passed in data *)
+  let teams_list = team_list sample_data in
+  let indexed_list = assignment teams_list 0 in
+  (* second entry point for passed in data *)
+  let updated_data = update_index sample_data indexed_list 0 in
+  let massey_matrix = populate_massey updated_data in
+  (* third entry point for passed in data *)
+  let points = point_spread sample_data in
+  let left_side = multiply (transpose massey_matrix) massey_matrix in
+  let right_side = multiply (transpose massey_matrix) points in
+  let augmented = augment left_side right_side in
+  let simplified = rref augmented in
+  let rankings = (*strip_results simplified*) v  in
+  let teams_and_rating = associate_value indexed_list rankings in
+    print_results teams_and_rating
+;;
+
+calculate_massey ()
+;;
+      

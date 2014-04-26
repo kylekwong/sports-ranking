@@ -1,0 +1,32 @@
+body{
+
+
+    margin-top: 80px;
+
+}
+.title{
+  text-align: center;
+}
+
+.navbar-brand {
+      font-weight: bold;
+    font: Garamond;
+    font-size: 50px;
+
+}
+
+#methodselect {
+  font-size: 24px;
+  height: 24px;
+  text-align: center;
+}
+
+#selector {
+    height: 24px;
+    font-size: 18px;
+  -webkit-appearance: menulist-button;
+}
+
+#form {
+  text-align: center;
+}
