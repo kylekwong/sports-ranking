@@ -107,7 +107,8 @@ let rref m =
           m.(i) <- Array.mapi (fun i iv -> iv -. lv *. m.(r).(i)) m.(i);
       done;
       incr lead;
-    done
+    done;
+    m
 ;;
 
 let ericmap f xs ys =

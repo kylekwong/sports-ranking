@@ -160,9 +160,14 @@ let rec sort_teams (list: (string * float) list)
 (* strips the ranking vector from a simplified, augmented matrix *)
 (* HOW THE FUCK DO YOU WRITE THIS FUCKING FUNCTION ? *)
 (* *******************BROKEN************************************)
-let rec strip_results (matrix : float array array) 
-		      (start: int) : float array array =
-  [|[||]|]
+let strip_results (matrix : float array array) : float array array =
+  let mat_size = Array.length matrix in
+  let row_size = Array.length matrix.(0) in
+  let vector = Array.make_matrix ~dimx:mat_size ~dimy:1 0. in
+  for i = 0 to (mat_size - 1) do 
+    vector.(i).(0) <- matrix.(i).(row_size - 1) 
+  done;
+  vector
 ;;
 
 (* prints the results in a semi-pretty format *)
@@ -186,7 +191,7 @@ let calculate_massey () =
   let right_side = multiply (transpose massey_matrix) points in
   let augmented = augment left_side right_side in
   let simplified = rref augmented in
-  let rankings = (*strip_results simplified*) v  in
+  let rankings = strip_results simplified in
   let teams_and_rating = associate_value indexed_list rankings in
     print_results teams_and_rating
 ;;
