@@ -223,53 +223,61 @@ let populate_minton (indexed_stats: (string * int) list list)
   help_populate_minton indexed_stats 0
 ;;
 
-(* pulls the (string * int) list list corresponding to a certain team 
- * and creates a point spread value for that team *)
-
+(* creates a float * float type that stores the number of points 
+ * a given team has scored and then number of points that have 
+ * been scored against it *)
 (* make sure to initialize with team_point and opponent_points = 0. *)
 let rec create_vars (stats: (string * int) list list) 
   		    (team : string) (team_points : float) 
-		    (opponent_points : float) : (float * float) =
-  let rec pull_games (stats: (string * int) list list) (team: string) :
-	  (string * int) list list = 
+		    (opponent_points : float) : float * float =
+  let rec pull_games (stats: (string * int) list list) (team: string) : 
+	             (string * int) list list = 
     match stats with
     | [] -> []
     | game :: season -> let [(t1, s1); (t2, s2)] = game in
 			if team = t1 || team = t2 
 		        then game :: (pull_games season team)
-		        else pull_games season team
-      in match (pull_games stats team) with
-	 | [] -> (0., 0.)
-	 | game ::  season -> 
-	    let [(t1, s1); (t2, s2)] = game in
-	    if t1 = team 
-	    then let team_points = team_points +. float(s1) in
-		 let opponent_points = opponent_points +.
-					 float(s2) in
-		 create_vars (pull_games stats team) team
-				 team_points opponent_points;
-		 (team_points, opponent_points)
-            else let team_points = team_points +. float(s2) in
-		 let opponent_points = opponent_points +. 
-					 float(s1) in
-		 create_vars (pull_games stats team) team
-				team_points opponent_points;
-		 (team_points, opponent_points)
+		        else pull_games season team in
+  let stat_list = pull_games stats team in
+  let rec vars_helper (stats1: (string * int) list list)
+		      (team1: string) (team_points1: float)
+		      (opponent_points1: float) : (float * float) =
+    match stats1 with
+    | [] -> (team_points1, opponent_points1)
+    | game ::  season -> 
+       let [(t1, s1); (t2, s2)] = game in
+       if t1 = team 
+       then let team_points = team_points1 +. float(s1) in
+	    let opponent_points = opponent_points1 +.
+				    float(s2) in
+	    vars_helper season team1 team_points opponent_points
+       else let team_points = team_points1 +. float(s2) in
+	    let opponent_points = opponent_points1 +. 
+				    float(s1) in
+	    vars_helper season team1 team_points opponent_points in
+  vars_helper stat_list team team_points opponent_points 
+;;
     
-
-			     
-
-
+(* creates the actual point spread for a given team! *)
+let rec create_spread (stats: (string * int) list list) 
+  		      (team : string) (team_points : float) 
+		      (opponent_points : float) : float = 
+  let (s1, s2) = (create_vars stats team 0. 0.)
+  in s1 -. s2
+;;
+					        
 (* calculates the massey point spread vector of a data set and
  * stores it in matrix format for later use *)
-let rec minton_point_spread (stats: (string * int) list list) 
+let rec minton_point_spread (stats: (string * int) list list)
 	: float array array =
-  match stats with
-  | [] -> [||]
-  | game :: season -> let [(t1,s1); (t2,s2)] = game in
-		      let ps1 = float(s1) -. float(s2) in 
+  (* we are going to iterate through the indexed list so we can keep 
+   * track of which slots the point spreads should be stored *)
+  match (assignment (team_list stats) 0) with
+  | [] -> [|[||]|]
+  | game :: season -> let (team, index) = game in 
+                      let ps1 = (create_spread stats team 0. 0.) in
 		      Array.append [|[|ps1|]|] 
-				   (minton_point_spread season)
+				   (minton_point_spread [season])
 
 (* all of massey's functionality, compressed to 1 function *)
 let calculate_minton () =
