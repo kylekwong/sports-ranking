@@ -272,12 +272,16 @@ let rec minton_point_spread (stats: (string * int) list list)
 	: float array array =
   (* we are going to iterate through the indexed list so we can keep 
    * track of which slots the point spreads should be stored *)
-  match (assignment (team_list stats) 0) with
-  | [] -> [|[||]|]
-  | game :: season -> let (team, index) = game in 
-                      let ps1 = (create_spread stats team 0. 0.) in
-		      Array.append [|[|ps1|]|] 
-				   (minton_point_spread [season])
+  let indexed_teams = assignment (team_list stats) 0 in
+  let rec mps_helper (teams: (string * int) list) :
+	    float array array = 
+    match teams with
+    | [] -> [|[||]|]
+    | cur_team :: league -> let (team, _) = cur_team in 
+			    let ps1 = (create_spread stats team 0. 0.) in
+			    Array.append [|[|ps1|]|] (mps_helper league) in
+  mps_helper indexed_teams
+;;
 
 (* all of massey's functionality, compressed to 1 function *)
 let calculate_minton () =
@@ -299,6 +303,3 @@ let calculate_minton () =
 
 calculate_minton ()
 ;;
-
-
-
