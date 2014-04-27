@@ -29,18 +29,19 @@ let rec team_list (teams: (string * int) list list)
 
 let teams_list = team_list sample_data
 
-(* calculates the point spread vector of a data set and
+(* calculates the massey point spread vector of a data set and
  * stores it in matrix format for later use *)
-let rec point_spread (stats: (string * int) list list) 
+let rec massey_point_spread (stats: (string * int) list list) 
 	: float array array =
   match stats with
   | [] -> [||]
   | game :: season -> let [(t1,s1); (t2,s2)] = game in
 		      let ps1 = float(s1) -. float(s2) in 
-		      Array.append [|[|ps1|]|] (point_spread season)
+		      Array.append [|[|ps1|]|] 
+				   (massey_point_spread season)
 ;;
 
-let points_vector = point_spread sample_data
+let points_vector = massey_point_spread sample_data
 
 (* assigns each team a unique matrix index *)
 let rec assignment (teams: string list) (index: int) 
@@ -83,19 +84,6 @@ let updated_data = update_index sample_data index_list 0;;
 
 (* now that we have our updated index list, we can create
  * a float array array that reflects each game played! *)
-(*let games = List.length updated_data
-let matrix_x = Array.make_matrix ~dimx:(games) ~dimy:(games) 0.
-let rec populate_massey (index_stats: (string * int) list list)
-			(game_number: int)
-	: float array array =
-  match index_stats with
-  | [] -> matrix_x
-  | game :: season ->
-     let [(t1, id_1); (t2, id_2)] = game in 
-      matrix_x.(game_number).(id_1) <- 1.;
-      matrix_x.(game_number).(id_2) <- -1.;
-      populate_massey season (game_number + 1)*)
-
 let populate_massey (index_stats: (string * int) list list)
 	: float array array =
   let games = List.length index_stats in
@@ -158,8 +146,6 @@ let rec sort_teams (list: (string * float) list)
 ;;
 
 (* strips the ranking vector from a simplified, augmented matrix *)
-(* HOW THE FUCK DO YOU WRITE THIS FUCKING FUNCTION ? *)
-(* *******************BROKEN************************************)
 let strip_results (matrix : float array array) : float array array =
   let mat_size = Array.length matrix in
   let row_size = Array.length matrix.(0) in
@@ -186,16 +172,125 @@ let calculate_massey () =
   let updated_data = update_index sample_data indexed_list 0 in
   let massey_matrix = populate_massey updated_data in
   (* third entry point for passed in data *)
-  let points = point_spread sample_data in
+  let points = massey_point_spread sample_data in
   let left_side = multiply (transpose massey_matrix) massey_matrix in
   let right_side = multiply (transpose massey_matrix) points in
   let augmented = augment left_side right_side in
   let simplified = rref augmented in
   let rankings = strip_results simplified in
-  let teams_and_rating = associate_value indexed_list rankings in
+  let teams_and_rating = sort_teams 
+			   (associate_value indexed_list rankings) in
     print_results teams_and_rating
 ;;
 
 calculate_massey ()
 ;;
-      
+
+(* Now we can move on to implementing Minton's method.
+ * We first need to write a function that returns the number of times 
+ * a given string occurs in a (string * int) list list...
+ * then we update the corresponding index of that string to that number, 
+ * and use the populate_massey method to turn the other indecies into -1...
+ * then we just augment, row_reduce, strip_results, sort teams, and print! *)
+
+(* finds the number of games a given team has played *)
+let rec num_games (stats : (string * int) list list) (team : string) : int = 
+  match stats with 
+  | [] -> 0
+  | game :: season -> let [(t1, _); (t2, _)] = game in
+		      if t1 = team || t2 = team
+		      then 1 + num_games season team 
+		      else num_games season team
+;;
+		      
+(* populates the minton matrix *)
+let populate_minton (indexed_stats: (string * int) list list)
+	: float array array =
+  let games = List.length indexed_stats in
+  let matrix_x = Array.make_matrix ~dimx:(games) ~dimy:(games) 0. in
+  let rec help_populate_minton (index_stats: (string * int) list list)
+				 (game_number: int)
+	  : float array array =
+    match index_stats with
+    | [] -> matrix_x
+    | game :: season ->
+       let [(t1, id_1); (t2, id_2)] = game in 
+       matrix_x.(id_1).(id_1) <- (float (num_games indexed_stats t1));
+       matrix_x.(id_2).(id_2) <- (float (num_games indexed_stats t2));
+       matrix_x.(id_1).(id_2) <- -1.;
+       matrix_x.(id_2).(id_1) <- -1.;
+       help_populate_minton season (game_number + 1) in
+  help_populate_minton indexed_stats 0
+;;
+
+(* pulls the (string * int) list list corresponding to a certain team 
+ * and creates a point spread value for that team *)
+
+(* make sure to initialize with team_point and opponent_points = 0. *)
+let rec create_vars (stats: (string * int) list list) 
+  		    (team : string) (team_points : float) 
+		    (opponent_points : float) : (float * float) =
+  let rec pull_games (stats: (string * int) list list) (team: string) :
+	  (string * int) list list = 
+    match stats with
+    | [] -> []
+    | game :: season -> let [(t1, s1); (t2, s2)] = game in
+			if team = t1 || team = t2 
+		        then game :: (pull_games season team)
+		        else pull_games season team
+      in match (pull_games stats team) with
+	 | [] -> (0., 0.)
+	 | game ::  season -> 
+	    let [(t1, s1); (t2, s2)] = game in
+	    if t1 = team 
+	    then let team_points = team_points +. float(s1) in
+		 let opponent_points = opponent_points +.
+					 float(s2) in
+		 create_vars (pull_games stats team) team
+				 team_points opponent_points;
+		 (team_points, opponent_points)
+            else let team_points = team_points +. float(s2) in
+		 let opponent_points = opponent_points +. 
+					 float(s1) in
+		 create_vars (pull_games stats team) team
+				team_points opponent_points;
+		 (team_points, opponent_points)
+    
+
+			     
+
+
+(* calculates the massey point spread vector of a data set and
+ * stores it in matrix format for later use *)
+let rec minton_point_spread (stats: (string * int) list list) 
+	: float array array =
+  match stats with
+  | [] -> [||]
+  | game :: season -> let [(t1,s1); (t2,s2)] = game in
+		      let ps1 = float(s1) -. float(s2) in 
+		      Array.append [|[|ps1|]|] 
+				   (minton_point_spread season)
+
+(* all of massey's functionality, compressed to 1 function *)
+let calculate_minton () =
+  (* first entry point for passed in data *)
+  let teams_list = team_list sample_data in
+  let indexed_list = assignment teams_list 0 in
+  (* second entry point for passed in data *)
+  let updated_data = update_index sample_data indexed_list 0 in
+  let minton_matrix = populate_minton updated_data in
+  (* third entry point for passed in data *)
+  let points = minton_point_spread sample_data in
+  let augmented = augment minton_matrix points in
+  let simplified = rref augmented in
+  let rankings = strip_results simplified in
+  let teams_and_rating = sort_teams 
+			   (associate_value indexed_list rankings) in
+    print_results teams_and_rating
+;;
+
+calculate_minton ()
+;;
+
+
+
