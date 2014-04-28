@@ -183,6 +183,7 @@ let calculate_massey () =
     print_results teams_and_rating
 ;;
 
+(* compute massey results! *)
 calculate_massey ()
 ;;
 
@@ -194,7 +195,8 @@ calculate_massey ()
  * then we just augment, row_reduce, strip_results, sort teams, and print! *)
 
 (* finds the number of games a given team has played *)
-let rec num_games (stats : (string * int) list list) (team : string) : int = 
+let rec num_games (stats : (string * int) list list) (team : string) 
+	: int = 
   match stats with 
   | [] -> 0
   | game :: season -> let [(t1, _); (t2, _)] = game in
@@ -224,20 +226,22 @@ let populate_minton (indexed_stats: (string * int) list list)
 ;;
 
 (* creates a float * float type that stores the number of points 
- * a given team has scored and then number of points that have 
+ * a given team has scored * the number of points that have 
  * been scored against it *)
 (* make sure to initialize with team_point and opponent_points = 0. *)
-let rec create_vars (stats: (string * int) list list) 
-  		    (team : string) (team_points : float) 
-		    (opponent_points : float) : float * float =
-  let rec pull_games (stats: (string * int) list list) (team: string) : 
+let rec pull_games (stats: (string * int) list list) (team: string) : 
 	             (string * int) list list = 
     match stats with
     | [] -> []
     | game :: season -> let [(t1, s1); (t2, s2)] = game in
 			if team = t1 || team = t2 
 		        then game :: (pull_games season team)
-		        else pull_games season team in
+		        else pull_games season team
+;;
+
+let rec create_vars (stats: (string * int) list list) 
+  		    (team : string) (team_points : float) 
+		    (opponent_points : float) : float * float =
   let stat_list = pull_games stats team in
   let rec vars_helper (stats1: (string * int) list list)
 		      (team1: string) (team_points1: float)
@@ -279,11 +283,12 @@ let rec minton_point_spread (stats: (string * int) list list)
     | [] -> [|[||]|]
     | cur_team :: league -> let (team, _) = cur_team in 
 			    let ps1 = (create_spread stats team 0. 0.) in
-			    Array.append [|[|ps1|]|] (mps_helper league) in
+			    Array.append [|[|ps1|]|] 
+					 (mps_helper league) in
   mps_helper indexed_teams
 ;;
 
-(* all of massey's functionality, compressed to 1 function *)
+(* all of minton's functionality, compressed to 1 function *)
 let calculate_minton () =
   (* first entry point for passed in data *)
   let teams_list = team_list sample_data in
@@ -301,5 +306,114 @@ let calculate_minton () =
     print_results teams_and_rating
 ;;
 
+(* compute minton results *)
 calculate_minton ()
 ;;
+
+(* returns the number of games a team has won * number of games 
+ * it has lost *)
+let rec wins_losses (stats: (string * int) list list) (team : string) 
+		    (start_wins : float) (start_losses : float)
+		      : float * float = 
+  match (pull_games stats team) with
+  | [] -> (start_wins, start_losses)
+  | game :: season -> let [(t1, s1); (t2, s2)] = game in
+		      if t1 = team then 
+			if s1 > s2 then (wins_losses season team 
+						     (start_wins +. 1.) 
+						     (start_losses))
+			else (wins_losses season team 
+						     (start_wins) 
+						     (start_losses 
+						      +. 1.))
+		      else
+			if s1 < s2 then (wins_losses season team 
+						     (start_wins +. 1.) 
+						     (start_losses))
+			else (wins_losses season team 
+						     (start_wins) 
+						     (start_losses 
+						      +. 1.))
+;;
+
+
+(* creates the actual point spread for a given team! *)
+let rec colley_create_spread (stats: (string * int) list list) 
+  		      (team : string) : float = 
+  let (w, l) = (wins_losses stats team 0. 0.) in
+  (1. +. ((w -. l) /. 2.)) /. (2. +. w +. l)
+
+
+(* calculates the colley point spread vector 
+ * by using colley's ranking algorithm,which incorporates the 
+ * number of wins and losses + other constants *)
+let rec colley_point_spread (stats: (string * int) list list)
+	: float array array =
+  (* we are going to iterate through the indexed list so we can keep 
+   * track of which slots the point spreads should be stored *)
+  let indexed_teams = assignment (team_list stats) 0 in
+  let rec cps_helper (teams: (string * int) list) 
+	  : float array array = 
+    match teams with
+    | [] -> [|[||]|]
+    | cur_team :: league -> let (team, _) = cur_team in 
+			    let ps1 = (colley_create_spread 
+					 stats team) in
+			    Array.append [|[|ps1|]|] 
+					 (cps_helper league) in
+  cps_helper indexed_teams
+
+(* populate the colley matrix! *)
+(* each diagonal element gets a 1 *)
+(* each team it plays gets a -1 / (2 +. w +. l) *)
+
+(* this can be drastically cleaned up. We take in index_stats AND stats,
+ * where index_stats is a manipulation of stats...this needs cleaning up! *)
+let populate_colley (indexed_stats: (string * int) list list) 
+		    (stats : (string * int) list list) 
+	: float array array =
+  let games = List.length indexed_stats in
+  let matrix_x = Array.make_matrix ~dimx:(games) ~dimy:(games) 0. in
+  let rec help_populate_colley (index_stats: (string * int) list list)
+				 (game_number: int) (stats : (string * int) list list)
+	  : float array array =
+    match index_stats with
+    | [] -> matrix_x
+    | game :: season ->
+       let [(t1, id_1); (t2, id_2)] = game in 
+       matrix_x.(id_1).(id_1) <- (1.);
+       matrix_x.(id_2).(id_2) <- (1.);
+       let (w1, l1) = (wins_losses stats t1 0. 0.) in 
+         matrix_x.(id_1).(id_2) <- ((-1.) /. (2. +. w1 +. l1));
+       let (w2, l2) = (wins_losses stats t2 0. 0.) in 
+       matrix_x.(id_2).(id_1) <- ((-1.) /. (2. +. w2 +. l2));
+       help_populate_colley season (game_number + 1) stats in
+  help_populate_colley indexed_stats 0 stats
+;;
+
+(* all of colley's functionality, compressed to 1 function *)
+let calculate_colley () =
+  (* first entry point for passed in data *)
+  let teams_list = team_list sample_data in
+  let indexed_list = assignment teams_list 0 in
+  (* second entry point for passed in data *)
+  let updated_data = update_index sample_data indexed_list 0 in
+  let colley_matrix = populate_colley updated_data sample_data in
+  (* third entry point for passed in data *)
+  let points = colley_point_spread sample_data in
+  let augmented = augment colley_matrix points in
+  let simplified = rref augmented in
+  let rankings = strip_results simplified in
+  let teams_and_rating = sort_teams 
+			   (associate_value indexed_list rankings) in
+    print_results teams_and_rating
+;;
+
+(* compute colley results *)
+calculate_colley ()
+;;
+
+(* ranking algorithms! *)
+calculate_massey ();;
+calculate_minton ();;
+calculate_colley ();;
