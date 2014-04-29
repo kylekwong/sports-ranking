@@ -1,5 +1,8 @@
 open Core.Std
 open Array
+open Matrix
+
+type m = Matrix.m
 
 let sample_data = [[("Brown", 7); ("Harvard", 24)]; 
 		   [("Cornell", 17); ("Yale", 37)]; 
@@ -402,7 +405,7 @@ let calculate_colley () =
   (* third entry point for passed in data *)
   let points = colley_point_spread sample_data in
   let augmented = augment colley_matrix points in
-  let simplified = rref augmented in
+  let simplified = echelon augmented in
   let rankings = strip_results simplified in
   let teams_and_rating = sort_teams 
 			   (associate_value indexed_list rankings) in
