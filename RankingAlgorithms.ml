@@ -15,11 +15,11 @@ let rec team_list (teams: (string * int) list list)
 	: string list =
   (* removes duplicates *)
   let rec clean_list (teams: string list) : string list = 
-  match teams with
-  | [] -> []
-  | team :: league -> if not (List.mem league team) 
-		      then team :: clean_list league
-		      else clean_list league 
+    match teams with
+    | [] -> []
+    | team :: league -> if not (List.mem league team) 
+ 	  	        then team :: clean_list league
+		        else clean_list league 
   in
   match teams with
   | [] -> []
