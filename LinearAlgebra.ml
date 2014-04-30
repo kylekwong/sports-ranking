@@ -27,18 +27,53 @@ sig
    * this week *)
   val echelon: m -> m
 
+  val augment: m -> m -> m
+
+  val empty_matrix: unit -> m
+
+  val append: m -> m -> m
+
+  val fill: float -> m
+
+  val make_matrix: int -> int -> float -> m
+
+  val fix_elt: m -> int -> int -> float -> unit
+
+  val find_elt: m -> int -> int -> float 
+
+  val matrix_length: m -> int
+
+  val array_length: m -> int
+
+  val init: int -> (int -> 'a) -> 'a array
+
+  val num_columns: m -> int
+ 
 end
 
 
 module Matrix : MATRIX =
 struct
 
+  open Array
+
   type m = float array array
   
+  let empty_matrix () = [|[||]|]
+  let append m1 m2 = Array.append m1 m2
+  let fill float = [|[|float|]|]
+  let make_matrix dim1 dim2 f = Array.make_matrix dim1 dim2 f
+  let fix_elt matrix i j replacement = matrix.(i).(j) <- replacement
+  let find_elt matrix i j = matrix.(i).(j)
+  let matrix_length matrix = Array.length matrix
+  let array_length matrix = Array.length matrix.(0)
+  let init int func = Array.init int func 
+  let num_columns mat = Array.length mat.(0)
+
   let transpose (matrix : m) : m  =  
     let new_height = Array.length matrix.(0) in
     let new_width = Array.length matrix in
-    let new_matrix = (make_matrix ~dimx:new_height ~dimy:new_width 1.) in
+    let new_matrix = (Array.make_matrix ~dimx:new_height ~dimy:new_width 1.) in
     let rec ihelper (c : int) : m =
       let rec jhelper (c2 : int) : m =
 	Array.set new_matrix.(c) c2 matrix.(c2).(c);
@@ -70,8 +105,8 @@ struct
   let m_t = transpose [|[|9.; 3.|]; [|4.; 6.|]|];;
 
 let ericmap f xs ys =
-  let n = length xs in
-  if length ys <> n then raise (Invalid_argument "Array.map2");
+  let n = Array.length xs in
+  if Array.length ys <> n then raise (Invalid_argument "Array.map2");
   Array.init n (fun i -> f xs.(i) ys.(i))
 
 
@@ -79,7 +114,7 @@ let multiply (mat1 : m) (mat2 :m) : m =
   let tmat2 = transpose mat2 in
   let height = Array.length mat1 in
   let width = Array.length tmat2 in 
-  let nmat = (make_matrix ~dimx:(height) ~dimy:(width) 1.) in
+  let nmat = (Array.make_matrix ~dimx:(height) ~dimy:(width) 1.) in
   let rec column (c1 : float array) (c2 : float array) (cc : int) : m =
     let rec row (r1 : float array) (r2 : float array) (rc : int) : m = 
       Array.set nmat.(cc) rc (Array.fold_right ~f:(+.) (ericmap ( *. ) r1 r2) ~init:(0.));
@@ -121,6 +156,7 @@ let echelon (matx: m)  =
  
 end
 
+(*
 let a = ericmap (-) [|1;2;3|] [|6;3;1|] = [|-5;-1;2|] ;;
 let b = ericmap (-) [|2;4;6|] [|1;2;3|] = [|1;2;3|]
 
@@ -128,3 +164,4 @@ let ma = [|[|1.; 2.; 3.|]; [|4.; 5.; 6.|]; [|7.; 8.; 9.|]|];;
 let mb = [|[|1.;2.|]; [|3.;4.|]|]
     
 let mc = multiply ma ma
+ *)

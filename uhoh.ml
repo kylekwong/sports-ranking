@@ -131,7 +131,7 @@ let rec associate_value (index_list: (string * int) list)
   match index_list with
   | [] -> []
   | team :: league -> let (string, index) = team in 
-         (string, Matrix.find_elt point_spread index 0) ::
+         (string, (Matrix.find_elt point_spread index 0)) ::
   (*(string, point_spread.(index).(0)) :: *)
            associate_value league point_spread
 ;;
@@ -155,11 +155,12 @@ let rec sort_teams (list: (string * float) list)
 
 (* strips the ranking vector from a simplified, augmented matrix *)
 let strip_results (matrix : m) : m =
-  let mat_size = Matrix.length matrix in
-  let row_size = Matrix.length matrix.(0) in
-  let vector = Array.make_matrix ~dimx:mat_size ~dimy:1 0. in
+  let mat_size = Matrix.matrix_length matrix in
+  let row_size = Matrix.array_length matrix in
+  let vector = Matrix.make_matrix mat_size 1 0. in
   for i = 0 to (mat_size - 1) do 
-    vector.(i).(0) <- matrix.(i).(row_size - 1) 
+    Matrix.fix_elt vector i 0 (Matrix.find_elt matrix i (row_size - 1))
+    (*vector.(i).(0) <- matrix.(i).(row_size - 1)*)
   done;
   vector
 ;;
@@ -183,7 +184,7 @@ let calculate_massey () =
   let points = massey_point_spread sample_data in
   let left_side = Matrix.multiply (Matrix.transpose massey_matrix) massey_matrix in
   let right_side = Matrix.multiply (Matrix.transpose massey_matrix) points in
-  let augmented = augment left_side right_side in
+  let augmented = Matrix.augment left_side right_side in
   let simplified = Matrix.echelon augmented in
   let rankings = strip_results simplified in
   let teams_and_rating = sort_teams 
@@ -217,7 +218,7 @@ let rec num_games (stats : (string * int) list list) (team : string)
 let populate_minton (indexed_stats: (string * int) list list)
   : m =
   let games = List.length indexed_stats in
-  let matrix_x = Array.make_matrix ~dimx:(games) ~dimy:(games) 0. in
+  let matrix_x = Matrix.make_matrix games games 0. in
   let rec help_populate_minton (index_stats: (string * int) list list)
          (game_number: int)
     : m =
@@ -225,10 +226,16 @@ let populate_minton (indexed_stats: (string * int) list list)
     | [] -> matrix_x
     | game :: season ->
        let [(t1, id_1); (t2, id_2)] = game in 
-       matrix_x.(id_1).(id_1) <- (float (num_games indexed_stats t1));
-       matrix_x.(id_2).(id_2) <- (float (num_games indexed_stats t2));
-       matrix_x.(id_1).(id_2) <- -1.;
-       matrix_x.(id_2).(id_1) <- -1.;
+       Matrix.fix_elt matrix_x id_1 id_1 
+		      (float (num_games indexed_stats t1));
+    (* matrix_x.(id_1).(id_1) <- (float (num_games indexed_stats t1));*)
+       Matrix.fix_elt matrix_x id_2 id_2 
+		      (float (num_games indexed_stats t2));
+    (* matrix_x.(id_2).(id_2) <- (float (num_games indexed_stats t2));*)
+       Matrix.fix_elt matrix_x id_1 id_2 (-1.);
+    (* matrix_x.(id_1).(id_2) <- -1.; *)
+       Matrix.fix_elt matrix_x id_2 id_1 (-1.);
+    (* matrix_x.(id_2).(id_1) <- -1.; *)
        help_populate_minton season (game_number + 1) in
   help_populate_minton indexed_stats 0
 ;;
@@ -381,7 +388,7 @@ let populate_colley (indexed_stats: (string * int) list list)
         (stats : (string * int) list list) 
   : m =
   let games = List.length indexed_stats in
-  let matrix_x = Array.make_matrix ~dimx:(games) ~dimy:(games) 0. in
+  let matrix_x = Matrix.make_matrix games games 0. in
   let rec help_populate_colley (index_stats: (string * int) list list)
          (game_number: int) (stats : (string * int) list list)
     : m =
@@ -389,12 +396,16 @@ let populate_colley (indexed_stats: (string * int) list list)
     | [] -> matrix_x
     | game :: season ->
        let [(t1, id_1); (t2, id_2)] = game in 
-       matrix_x.(id_1).(id_1) <- (1.);
-       matrix_x.(id_2).(id_2) <- (1.);
-       let (w1, l1) = (wins_losses stats t1 0. 0.) in 
-         matrix_x.(id_1).(id_2) <- ((-1.) /. (2. +. w1 +. l1));
+       Matrix.fix_elt matrix_x id_1 id_1 1.;
+       (* matrix_x.(id_1).(id_1) <- (1.); *)
+       Matrix.fix_elt matrix_x id_2 id_2 1.;
+       (* matrix_x.(id_2).(id_2) <- (1.); *)
+       let (w1, l1) = (wins_losses stats t1 0. 0.) in
+       Matrix.fix_elt matrix_x id_1 id_2 ((-1.) /. (2. +. w1 +. l1));
+       (*matrix_x.(id_1).(id_2) <- ((-1.) /. (2. +. w1 +. l1));*)
        let (w2, l2) = (wins_losses stats t2 0. 0.) in 
-       matrix_x.(id_2).(id_1) <- ((-1.) /. (2. +. w2 +. l2));
+       Matrix.fix_elt matrix_x id_2 id_1 ((-1.) /. (2. +. w2 +. l2));
+       (*matrix_x.(id_2).(id_1) <- ((-1.) /. (2. +. w2 +. l2));*)
        help_populate_colley season (game_number + 1) stats in
   help_populate_colley indexed_stats 0 stats
 ;;
@@ -409,7 +420,7 @@ let calculate_colley () =
   let colley_matrix = populate_colley updated_data sample_data in
   (* third entry point for passed in data *)
   let points = colley_point_spread sample_data in
-  let augmented = augment colley_matrix points in
+  let augmented = Matrix.augment colley_matrix points in
   let simplified = Matrix.echelon augmented in
   let rankings = strip_results simplified in
   let teams_and_rating = sort_teams 

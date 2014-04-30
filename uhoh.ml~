@@ -155,11 +155,12 @@ let rec sort_teams (list: (string * float) list)
 
 (* strips the ranking vector from a simplified, augmented matrix *)
 let strip_results (matrix : m) : m =
-  let mat_size = Matrix.length matrix in
-  let row_size = Matrix.length matrix.(0) in
-  let vector = Array.make_matrix ~dimx:mat_size ~dimy:1 0. in
+  let mat_size = Matrix.matrix_length matrix in
+  let row_size = Matrix.array_length matrix in
+  let vector = Matrix.make_matrix mat_size 1 0. in
   for i = 0 to (mat_size - 1) do 
-    vector.(i).(0) <- matrix.(i).(row_size - 1) 
+    Matrix.fix_elt vector i 0 (Matrix.find_elt i (row_size - 1)
+    (*vector.(i).(0) <- matrix.(i).(row_size - 1)*) 
   done;
   vector
 ;;
@@ -217,7 +218,7 @@ let rec num_games (stats : (string * int) list list) (team : string)
 let populate_minton (indexed_stats: (string * int) list list)
   : m =
   let games = List.length indexed_stats in
-  let matrix_x = Array.make_matrix ~dimx:(games) ~dimy:(games) 0. in
+  let matrix_x = Matrix.make_matrix ~dimx:(games) ~dimy:(games) 0. in
   let rec help_populate_minton (index_stats: (string * int) list list)
          (game_number: int)
     : m =
@@ -291,7 +292,7 @@ let rec minton_point_spread (stats: (string * int) list list)
     | [] -> Matrix.empty_matrix ()
     | cur_team :: league -> let (team, _) = cur_team in 
           let ps1 = (create_spread stats team 0. 0.) in
-          Matrix.append (Matrix.fill ps1)
+          Matrix.append Matrix.fill ps1
            (mps_helper league) in
   mps_helper indexed_teams
 ;;
@@ -367,7 +368,7 @@ let rec colley_point_spread (stats: (string * int) list list)
     | cur_team :: league -> let (team, _) = cur_team in 
           let ps1 = (colley_create_spread 
            stats team) in
-          Matrix.append (Matrix.fill ps1)
+          Matrix.append Matrix.fill ps1
            (cps_helper league) in
   cps_helper indexed_teams
 
@@ -381,7 +382,7 @@ let populate_colley (indexed_stats: (string * int) list list)
         (stats : (string * int) list list) 
   : m =
   let games = List.length indexed_stats in
-  let matrix_x = Array.make_matrix ~dimx:(games) ~dimy:(games) 0. in
+  let matrix_x = Matrix.make_matrix ~dimx:(games) ~dimy:(games) 0. in
   let rec help_populate_colley (index_stats: (string * int) list list)
          (game_number: int) (stats : (string * int) list list)
     : m =
