@@ -48,8 +48,6 @@ sig
   val array_length: m -> int
 
   val init: int -> (int -> 'a) -> 'a array
-
-  val num_columns: m -> int
  
 end
 
@@ -71,7 +69,6 @@ struct
   let matrix_length matrix = Array.length matrix
   let array_length matrix = Array.length matrix.(0)
   let init int func = Array.init int func 
-  let num_columns mat = Array.length mat.(0)
 
   let transpose (matrix : m) : m  =  
     let new_height = Array.length matrix.(0) in
@@ -168,3 +165,58 @@ let mb = [|[|1.;2.|]; [|3.;4.|]|]
     
 let mc = multiply ma ma
  *)
+
+let tests () = 
+  let float_m = Matrix.fill 0. in
+  let float_m1 = Matrix.fill 123. in
+  assert(Matrix.find_elt float_m 0 0 = 0.);
+  assert(Matrix.find_elt float_m1 0 0 = 123.);
+  let m_row1 = Matrix.make_matrix 1 2 0. in
+  let m_row2 = Matrix.make_matrix 1 2 0. in
+  let m_2by2 = Matrix.append m_row1 m_row2 in
+  assert(Matrix.matrix_length m_2by2 = 2);
+  assert(Matrix.array_length m_2by2 = 2);
+  assert(Matrix.find_elt m_2by2 0 0 = 0.);
+  assert(Matrix.find_elt m_2by2 0 1 = 0.);
+  assert(Matrix.find_elt m_2by2 1 0 = 0.);
+  assert(Matrix.find_elt m_2by2 1 1 = 0.);
+  assert(Matrix.fix_elt m_2by2 0 0 5.;
+	 Matrix.find_elt m_2by2 0 0 = 5.);
+  assert(Matrix.fix_elt m_2by2 1 1 10.;
+	 Matrix.find_elt m_2by2 1 1 = 10.);
+  let m_2by2 = Matrix.transpose m_2by2 in
+  assert(Matrix.matrix_length m_2by2 = 2);
+  assert(Matrix.array_length m_2by2 = 2);
+  assert(Matrix.find_elt m_2by2 0 0 = 5.);
+  assert(Matrix.find_elt m_2by2 0 1 = 0.);
+  assert(Matrix.find_elt m_2by2 1 0 = 0.);
+  assert(Matrix.find_elt m_2by2 1 1 = 10.);
+  Matrix.fix_elt m_2by2 0 1 2.;
+  Matrix.fix_elt m_2by2 1 0 6.;
+  let t_2by2 = Matrix.transpose m_2by2 in
+  assert(Matrix.find_elt t_2by2 0 0 = 5.);
+  assert(Matrix.find_elt t_2by2 0 1 = 6.);
+  assert(Matrix.find_elt t_2by2 1 0 = 2.);
+  assert(Matrix.find_elt t_2by2 1 1 = 10.);
+  let m2_2x2 = Matrix.make_matrix 2 2 0. in
+  Matrix.fix_elt m2_2x2 0 0 1.;
+  Matrix.fix_elt m2_2x2 0 1 2.;
+  Matrix.fix_elt m2_2x2 1 0 3.;
+  Matrix.fix_elt m2_2x2 1 1 4.;
+  let m3_2x2 = Matrix.multiply m_2by2 m2_2x2 in
+  assert(Matrix.find_elt m3_2x2 0 0 = 11.);
+  assert(Matrix.find_elt m3_2x2 0 1 = 18.);
+  assert(Matrix.find_elt m3_2x2 1 0 = 36.);
+  assert(Matrix.find_elt m3_2x2 1 1 = 52.);
+  let m3_2x2 = Matrix.multiply m2_2x2 m_2by2 in
+  assert(Matrix.find_elt m3_2x2 0 0 = 17.);
+  assert(Matrix.find_elt m3_2x2 0 1 = 22.);
+  assert(Matrix.find_elt m3_2x2 1 0 = 39.);
+  assert(Matrix.find_elt m3_2x2 1 1 = 46.);
+  let reduced_m3 = Matrix.echelon m3_2x2 in
+  assert(Matrix.find_elt reduced_m3 0 0 = 1.);
+  assert(Matrix.find_elt reduced_m3 0 1 = 0.);
+  assert(Matrix.find_elt reduced_m3 1 0 = 0.);
+  assert(Matrix.find_elt reduced_m3 1 1 = 1.);;
+
+tests ();;
