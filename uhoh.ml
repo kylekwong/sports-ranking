@@ -6,31 +6,31 @@ module RankingAlgorithms =
 struct 
    type m = Matrix.m
 
-let sample_data = [[("Brown", 7); ("Harvard", 24)]; 
-       [("Cornell", 17); ("Yale", 37)]; 
-       [("Penn", 22); ("Dartmouth", 20)]; 
-       [("Columbia", 21); ("Princeton", 24)]; 
-       [("Dartmouth", 0); ("Yale", 30)]; 
-       [("Harvard", 41); ("Cornell", 31)];
-       [("Princeton", 0); ("Brown", 34)]; 
-       [("Penn", 27); ("Columbia", 20)]]
+   let sample_data = [[("Brown", 7); ("Harvard", 24)]; 
+		      [("Cornell", 17); ("Yale", 37)]; 
+		      [("Penn", 22); ("Dartmouth", 20)]; 
+		      [("Columbia", 21); ("Princeton", 24)]; 
+		      [("Dartmouth", 0); ("Yale", 30)]; 
+		      [("Harvard", 41); ("Cornell", 31)];
+		      [("Princeton", 0); ("Brown", 34)]; 
+		      [("Penn", 27); ("Columbia", 20)]]
 
 (* places all unique teams found in a data set into a list *)
-let rec team_list (teams: (string * int) list list) 
-  : string list =
-  (* removes duplicates *)
-  let rec clean_list (teams: string list) : string list = 
-    match teams with
-    | [] -> []
-    | team :: league -> if not (List.mem league team) 
-              then team :: clean_list league
-            else clean_list league 
-  in
-  match teams with
-  | [] -> []
-  | game :: season -> let [(t1,s1); (t2,s2)] = game in
-          clean_list (t1 :: t2 :: (team_list season))
-;;
+   let rec team_list (teams: (string * int) list list) 
+	   : string list =
+     (* removes duplicates *)
+     let rec clean_list (teams: string list) : string list = 
+       match teams with
+       | [] -> []
+       | team :: league -> if not (List.mem league team) 
+			   then team :: clean_list league
+			   else clean_list league 
+     in
+     match teams with
+     | [] -> []
+     | game :: season -> let [(t1,s1); (t2,s2)] = game in
+			 clean_list (t1 :: t2 :: (team_list season))
+   ;;
 
 let teams_list = team_list sample_data
 
@@ -39,7 +39,7 @@ let teams_list = team_list sample_data
 let rec massey_point_spread (stats: (string * int) list list) 
   : m =
   match stats with
-  | [] -> Matrix.empty_matrix ()
+  | [] ->  (* Matrix.empty_matrix () *) Matrix.empty_float_array ()
   | game :: season -> let [(t1,s1); (t2,s2)] = game in
           let ps1 = float(s1) -. float(s2) in 
           Matrix.append (Matrix.fill ps1)

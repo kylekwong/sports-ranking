@@ -31,6 +31,8 @@ sig
 
   val empty_matrix: unit -> m
 
+  val empty_float_array: unit -> m
+
   val append: m -> m -> m
 
   val fill: float -> m
@@ -60,6 +62,7 @@ struct
   type m = float array array
   
   let empty_matrix () = [|[||]|]
+  let empty_float_array () = [||]
   let append m1 m2 = Array.append m1 m2
   let fill float = [|[|float|]|]
   let make_matrix dim1 dim2 f = Array.make_matrix dim1 dim2 f
